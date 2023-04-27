@@ -1,0 +1,514 @@
+---
+title: "x"
+author: "Author: Athira B"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+<br>
+
+#### About the Company
+
+Bellabeat is a high-tech manufacturer of health-focused product for women. Bellabeat is a successful small company, but they have the potential to become a larger player in the global smart device market. Urška Sršen, cofounder and Chief Creative Officer, believes that analyzing smart device fitness data could help unlock new growth opportunities for the company. 
+
+Visit: [Bellabeat] ( https://bellabeat.com/)
+  
+<br> 
+
+#### Business Task
+
+* Analyse smart device data to identify how customers are using Bellabeat products
+* Identify trends and unlock new growth opportunities
+* Develop insights and provide recommendations to the marketing team
+  
+<br> 
+
+#### Loading Packages
+
+<br> 
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(janitor)
+```
+
+<br> 
+
+#### Importing Datasets
+
+Source Data: [Kaggle Dataset]( https://www.kaggle.com/datasets/arashnic/fitbit )
+
+<br>
+
+```{r}
+daily_activity <- read_csv("/Users/Athira/Downloads/Fitabase Data 4.12.16-5.12.16/dailyActivity_merged.csv", show_col_types = FALSE)
+
+sleep_info <- read_csv("/Users/Athira/Downloads/Fitabase Data 4.12.16-5.12.16/sleepDay_merged.csv", show_col_types = FALSE)
+
+heart_rate_info <- read_csv("/Users/Athira/Downloads/Fitabase Data 4.12.16-5.12.16/heartrate_seconds_merged.csv", show_col_types = FALSE)
+
+weight_log <- read_csv("/Users/Athira/Downloads/Fitabase Data 4.12.16-5.12.16/weightLogInfo_merged.csv", show_col_types = FALSE)
+
+hourly_intensity <- read_csv("/Users/Athira/Downloads/Fitabase Data 4.12.16-5.12.16/hourlyIntensities_merged.csv", show_col_types = FALSE)
+
+```
+
+<br>
+
+Taking a quick look at the data and column datatypes,
+
+<br>
+
+```{r}
+glimpse(daily_activity)
+
+glimpse(sleep_info)
+
+glimpse(heart_rate_info)
+
+glimpse(hourly_intensity)
+
+glimpse(weight_log)
+```
+
+<br>
+
+Checking distinct count,
+
+<br>
+
+```{r}
+cat("Count: ", n_distinct(daily_activity) ,"\n\n", sep= " ")
+cat("Count: ", n_distinct(sleep_info) ,"\n\n", sep= " ")
+cat("Count: ", n_distinct(heart_rate_info), "\n\n", sep= " ")
+cat("Count: ", n_distinct(hourly_intensity), "\n\n", sep= " ")
+cat("Count: ", n_distinct(weight_log), "\n\n", sep= " ")
+```
+
+<br> 
+
+#### Cleaning the Data
+
+Cleaning column names,
+
+<br>
+
+```{r}
+clean_names(daily_activity)
+
+clean_names(sleep_info)
+
+clean_names(heart_rate_info)
+
+clean_names(hourly_intensity)
+
+clean_names(hourly_intensity)
+```
+
+<br> 
+
+Checking for duplicates,
+
+<br> 
+
+```{r}
+sum(duplicated(daily_activity))
+
+sum(duplicated(sleep_info))
+
+sum(duplicated(heart_rate_info))
+
+sum(duplicated(hourly_intensity))
+
+sum(duplicated(weight_log))
+```
+
+<br>
+
+Removing duplicate records in **sleep_info**,
+
+<br>
+
+```{r}
+sleep_info <- unique(sleep_info)
+```
+
+<br>
+
+Checking for nulls,
+
+<>br
+
+```{r}
+colSums(is.na(daily_activity))
+
+colSums(is.na(sleep_info))
+
+colSums(is.na(heart_rate_info))
+
+colSums(is.na(hourly_intensity))
+
+colSums(is.na(weight_log))
+```
+
+<br>
+
+Fixing date, date time formats and creating separate date and time columns for further analysis,
+
+<br>
+
+```{r}
+#Activity
+daily_activity$Date <- format((as.POSIXct(daily_activity$ActivityDate, format = "%m/%d/%Y")), format = "%m/%d/%y")
+
+#Sleep  
+sleep_info$Date <- format((as.POSIXct(sleep_info$SleepDay, format = "%m/%d/%Y %I:%M:%S %p")), format = "%m/%d/%y")
+sleep_info$Time <- format((as.POSIXct(sleep_info$SleepDay, format = "%m/%d/%Y %I:%M:%S %p")), format = "%I:%M:%S %p")
+
+#Heart Rate
+heart_rate_info$Date <- format((as.POSIXct(heart_rate_info$Time, format = "%m/%d/%Y %I:%M:%S %p")), format = "%m/%d/%y")
+heart_rate_info$Timestamp <- format(as.POSIXct(heart_rate_info$Time, format = "%m/%d/%Y %I:%M:%S %p"), format = "%I:%M:%S %p")
+
+#Hourly Intensity
+hourly_intensity$Date <- format((as.POSIXct(hourly_intensity$ActivityHour, format = "%m/%d/%Y %I:%M:%S %p")), format = "%m/%d/%y")
+hourly_intensity$Time <- format(as.POSIXct(hourly_intensity$ActivityHour, format = "%m/%d/%Y %I:%M:%S %p"), format = "%H:%M:%S")
+
+#Weight
+weight_log$DateCol <- format(as.POSIXct(weight_log$Date, format = "%m/%d/%Y %I:%M:%S %p"), format = "%m/%d/%Y")
+weight_log$Time <- format(as.POSIXct(weight_log$Date, format = "%m/%d/%Y %I:%M:%S %p"), format = "%I:%M:%S %p")
+```
+
+
+<br>
+
+#### Analysing the Data
+
+**Finding Number of Users in each Dataset**
+
+<br>
+
+```{r}
+n_distinct(daily_activity$Id)
+
+n_distinct(sleep_info$Id)
+
+n_distinct(heart_rate_info$Id)
+
+n_distinct(hourly_intensity$Id)
+
+n_distinct(weight_log$Id)
+```
+
+<br>
+
+**Summarising the data in each datasets**
+
+<br>
+
+```{r}
+#Average Daily Steps, Calories and Daily Activity Minutes per User
+activity_ds <- daily_activity %>% 
+  select(Id, TotalSteps, Calories, VeryActiveMinutes, FairlyActiveMinutes, LightlyActiveMinutes, SedentaryMinutes) %>% 
+  group_by(Id) %>% 
+  summarise(Avg_TotalSteps = mean(TotalSteps), Avg_Calories = mean(Calories), Avg_VeryActiveMinutes = mean(VeryActiveMinutes), Avg_FairlyActiveMinutes = mean(FairlyActiveMinutes), Avg_LightlyActiveMinutes = mean(LightlyActiveMinutes), Avg_SedentaryMinutes = mean(SedentaryMinutes))
+
+
+#Average Daily Sleep Time per User with Sleep Efficiency
+sleep_ds <- sleep_info %>% 
+  select(Id, TotalMinutesAsleep, TotalTimeInBed, Date) %>% 
+  group_by(Id) %>% 
+  summarise(Avg_TotalMinutesAsleep = mean(TotalMinutesAsleep), Avg_TotalTimeInBed = mean(TotalTimeInBed), Sleep_Efficiency = (mean(TotalMinutesAsleep)/mean(TotalTimeInBed)) * 100)
+
+
+#Grouping Avg_Total_Intensity of Users per Hour
+intensity_info <- hourly_intensity %>%
+  group_by(Time) %>%
+  drop_na() %>%
+  summarise(Avg_Total_Intensity = mean(TotalIntensity))
+
+
+#Finding number of Weight Logs of each User
+weight_log <- weight_log %>% 
+  group_by(Id) %>% 
+  mutate(Number_of_Logs = n()) 
+```
+
+<br> 
+
+* We have calculated the average daily steps,  average calories burned, average daily total activity minutes per  user - This can help to categorizing users based on activity.
+
+* We have calculated daily average sleep efficiency. This is percentage of Total Minutes in Bed/ Total Minutes Asleep  - We can classify users based on sleep. 
+
+* We can further analyse how daily exercise affects sleep and weight.
+
+
+<br>
+
+**Categorizing Users based on Activity**
+
+According to CDC,
+* Sedentary - Less than 5000 steps per day
+* Low Active - 5000 to 7499 steps per day
+* Somewhat Active - 7500 to 9999 steps per day
+* Active - 10000 to 12499 steps per day
+* Highly Active - More than 12500
+
+<br>
+
+```{r}
+#Adding the column User_Type to segment users
+activity_ds <- activity_ds %>% 
+  mutate(User_Type = case_when(Avg_TotalSteps < 5000 ~ "Sedentary", Avg_TotalSteps > 5000 & Avg_TotalSteps <= 7499 ~ "Low Active", Avg_TotalSteps >= 7500 & Avg_TotalSteps <= 9999 ~ "Somewhat Active", Avg_TotalSteps >= 10000 & Avg_TotalSteps <= 12499 ~ "Active", Avg_TotalSteps >12499 ~ "Highly Active"))
+
+
+#Creating a dataset with the count of each User Types
+steps_ds_count <- activity_ds %>% 
+  group_by(User_Type) %>% 
+  summarise(Number_of_Users = n(), .groups = 'drop')
+```
+
+<br>
+
+**Categorizing Users based on Sleep**
+
+According CDC, to healthy adult requires 7-9 hours of sleep. We have classified users based on average daily hours of sleep,
+
+* 7-9 hours - Healthy Sleep
+* 6-7 hours - Average Sleep
+* Less than 5.5 hours - Low Sleep (Long term health effects - obesity, diabetes, high BP etc)
+* 10 - 12 hours - Over Sleep (Tendency of underlying issues - sleep disorder, medications, medical/psychiatric illness etc)
+
+<br>
+
+```{r}
+#Adding the column Sleep_Type to segment users
+sleep_ds <- sleep_ds %>% 
+  mutate(Sleep_Type = case_when(Avg_TotalMinutesAsleep >= 420 & Avg_TotalMinutesAsleep < 540 ~ "Healthy Sleep", Avg_TotalMinutesAsleep >= 330 & Avg_TotalMinutesAsleep < 420 ~ "Average Sleep", Avg_TotalMinutesAsleep < 330  ~ "Low Sleep", Avg_TotalMinutesAsleep > 540 ~ "Over Sleep"))
+
+
+#Creating a dataset with the count of Users in each Sleep Type
+sleep_ds_count <- sleep_ds %>% 
+  group_by(Sleep_Type) %>% 
+  summarise(Number_of_Users = n(), .groups = 'drop')
+
+
+```
+
+<br>
+
+#### Visualising Data
+
+**Segmenting Users Based on Activity**
+
+<br>
+```{r}
+#Creating a pie chart
+ggplot(steps_ds_count, aes(x = "", y = Number_of_Users, fill = User_Type)) + 
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar("y", start = 0) + 
+  theme_void() +
+  geom_text(aes(label = paste0(Number_of_Users, ' Users')), position = position_stack(vjust = 0.5) , color = "white", size = 3.5)+
+  labs(fill = "User Type", title = "User Segments")
+
+
+```
+
+
+<br>
+
+Here we can see that majority of the users fall in the Low Active and Sedentary segments.
+
+<br>
+
+**Total Steps vs Total Calories**
+
+<br>
+
+```{r}
+ggplot(daily_activity, aes(x = TotalSteps, y = Calories, theme(axis.title.x = element_text(angle = 45)))) +
+  geom_point(size = 1)+
+  geom_smooth(color = "green") + 
+  labs(title =  "Total Steps vs Calories")
+
+```
+<br>
+
+As expected, there is a linear relationship between steps and calories burned.
+
+<br>
+
+**Peak Activity Time**
+
+<br>
+
+```{r}
+#Finding the Top 3 Values to Highlight in the Graph
+intensity_info <- mutate(intensity_info, Top3 = rank(-Avg_Total_Intensity) %in% 1:3)
+
+#Mapping the Intensity per Hour
+ggplot(intensity_info, aes(x= Time, y = Avg_Total_Intensity, fill = Top3)) + 
+  geom_col(width= 0.7)+
+  labs(title="Hourly Intensity")+
+  scale_fill_manual( values = c( "TRUE" = "green", "FALSE" ="black" ), guide = FALSE )+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+<br>
+
+We can see that the peak time of activity is in the evening (assuming post office hours) from 4.30 pm to 7.30 pm.
+
+<br>
+
+**Segmenting Users Based on Sleep**
+
+<br>
+
+```{r}
+#Creating a pie chart
+ggplot(sleep_ds_count, aes(x = "", y = Number_of_Users, fill = Sleep_Type)) + 
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar("y", start = 0) + 
+  theme_void() +
+  geom_text(aes(label = paste0(Number_of_Users, ' Users')), position = position_stack(vjust = 0.5) , color = "white", size = 3.5)+
+  labs(fill = "Sleep Type", title = "User Segments")
+
+```
+<br>
+
+We can see from the data that there are several users in the Low and Over Sleep segments.
+
+<br>
+
+**Sedentary minutes vs Sleep**
+
+<br>
+
+```{r}
+#Joining activity_ds with sleep_ds
+activity_sleep <- inner_join(sleep_info, daily_activity, by=c('Id', 'Date'))
+
+ggplot(activity_sleep, aes(x = TotalMinutesAsleep, y = SedentaryMinutes, theme(axis.title.x = element_text(angle = 45)))) +
+  geom_point(size = 1)+
+  geom_smooth(color = "Red") + 
+  labs(title =  "Total Minutes Asleep vs Sedentary Minutes")
+```
+<br>
+
+The graph shows that when the sedentary minutes increases, sleep decreases.
+
+**Calories vs Sleep Efficiency**
+
+<br>
+
+```{r}
+#Combining Activity and Sleep Data
+activity_sleep_summary <- inner_join(sleep_ds, activity_ds, by = 'Id')
+
+#Mapping Calories vs Sleep Efficiency
+ggplot(activity_sleep_summary, aes(x = Sleep_Efficiency, y = Avg_Calories, theme(axis.title.x = element_text(angle = 45)))) +
+  geom_point()+
+  geom_smooth(color = "Green") + 
+  labs(title =  "Calories vs Sleep Efficiency")
+```
+
+<br>
+
+The sample size is insufficient to make a correlation.
+
+<br>
+
+**Different Type of Users vs Sleep Efficiency**
+
+<br>
+
+```{r}
+#Summarizing Activity of Each User Type
+activity_sleep_round <- activity_sleep_summary %>% 
+  group_by(User_Type) %>% 
+  summarise(TotalMinutesAsleep = mean(Avg_TotalMinutesAsleep), Calories = mean(Avg_Calories), Sleep_Efficiency = mean(Sleep_Efficiency))
+
+
+#Highlighting Top 3 User Types
+activity_sleep_round <- mutate(activity_sleep_round, High_Calories = rank(-Calories) %in% 1:3)
+
+#Mapping Sleep Efficiency with each User Type
+ggplot(activity_sleep_round, aes(x = Sleep_Efficiency, y = Calories, fill = High_Calories)) + 
+  geom_bar(stat = "identity", width =4, color = "Black")+
+  labs(title="Sleep Efficiency vs User Type")+
+  scale_fill_manual( values = c( "TRUE" = "green", "FALSE" ="red" ), guide = FALSE )+
+  facet_grid(~ User_Type, scales= "free_y")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+<br>
+
+Sedentary and Low Active users have lesser Sleep Efficiency
+
+<br>
+
+**Weight Vs Exercise**
+
+<br>
+
+```{r}
+#Filtering Users that have Logged more than 20 Days
+weight_log_ds <- filter(weight_log, Number_of_Logs > 20 & Number_of_Logs != "5")
+
+#Joining with Activity to get more Info
+activity_weight <- inner_join(activity_ds, weight_log_ds, by = 'Id') 
+  
+#Mapping Weight Changes w.r.t User Type
+ggplot(activity_weight, aes(x = DateCol, y = WeightKg)) + 
+  geom_line(group = 1, size = 2, color = "Blue")+ 
+  labs(title="Weight Over Time")+
+  facet_wrap(~User_Type)+
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+```
+
+<br>
+
+We only have data from 8 users out of which only 2 are logging their weight regularly. These users have a steady weight throughout this period, but data is insufficient to make a conclusive analysis.
+
+<br>
+
+#### Limitations of the Data
+
+* There is no data on the age and other demographic factors of the users. This could help to understand the users more, find patterns and cater to their demands.
+
+* Despite being a product for women, there is no data on the reproductive/menstrual cycle. Creating awareness among women of what the devices can do for them and how it can make their life easier is crucial.
+
+* The sample pool is less. A bigger sample would have helped in a more concrete analysis.
+
+<br>
+
+#### Summarizing Insights and Recommendations
+
+Some of the recommendations for the marketing team are:
+
+* If the users fall into the Low Activity/Sedentary segment, encourage them to improve activity by providing personalized activity recommendations.
+
+* For users falling into Less/Over Sleep segment, notify them with the problem and potential health issues related to it. Send out daily reminders to sleep at appropriate time and encourage to set alarm.
+
+* For Low Activity/Sedentary users with less sleep, send out a push notification  in the morning how exercise can improve their sleep. Provide personalized recommendations for activity.
+
+* Track daily peak activity pattern for each user. Send push notification 1 hour before, to remind users to work out.
+
+* Marketing team should create a plan to encourage more users to regularly track heart rate and weight log. Users should be routinely reminded how much impact these features can bring to their health goals.
+
+
+
+
+
+
+
+
+
+
+
+
